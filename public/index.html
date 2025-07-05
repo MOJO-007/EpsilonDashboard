@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="logo">📺 YouTube Dashboard</h1>
+                    <div class="header-actions">
+                        <div id="auth-status" class="auth-status"></div>
+                        <button id="auth-btn" class="btn btn-primary">Connect YouTube</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Auth Required Message -->
+                <div id="auth-required" class="auth-required">
+                    <div class="auth-card">
+                        <h2>🔐 Authentication Required</h2>
+                        <p>Please connect your YouTube account to access the dashboard.</p>
+                        <button onclick="authenticateYouTube()" class="btn btn-primary btn-large">
+                            Connect YouTube Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Content -->
+                <div id="dashboard" class="dashboard" style="display: none;">
+                    <!-- Overview Cards -->
+                    <div class="overview-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-content">
+                                <h3 id="subscriber-count">-</h3>
+                                <p>Subscribers</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">📹</div>
+                            <div class="stat-content">
+                                <h3 id="video-count">-</h3>
+                                <p>Videos</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">👀</div>
+                            <div class="stat-content">
+                                <h3 id="total-views">-</h3>
+                                <p>Total Views</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">💬</div>
+                            <div class="stat-content">
+                                <h3 id="recent-comments">-</h3>
+                                <p>Recent Comments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Reply Controls -->
+                    <div class="card auto-reply-card">
+                        <div class="card-header">
+                            <h3>🤖 Auto-Reply Settings</h3>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="auto-reply-toggle" class="toggle-input">
+                                <label for="auto-reply-toggle" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        <div class="auto-reply-status">
+                            <p id="auto-reply-status">Auto-reply is disabled</p>
+                            <button id="manual-monitor" class="btn btn-secondary">Check Comments Now</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="videos">📹 Videos</button>
+                        <button class="tab-btn" data-tab="comments">💬 Comments</button>
+                        <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- Videos Tab -->
+                        <div id="videos-tab" class="tab-pane active">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Recent Videos</h3>
+                                    <button id="refresh-videos" class="btn btn-secondary">Refresh</button>
+                                </div>
+                                <div id="videos-list" class="videos-list">
+                                    <div class="loading">Loading videos...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comments Tab -->
+                        <div id="comments-tab" class="tab-pane">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Recent Comments</h3>
+                                    <div class="comment-filters">
+                                        <select id="time-filter" class="select">
+                                            <option value="24">Last 24 hours</option>
+                                            <option value="168">Last week</option>
+                                            <option value="720">Last month</option>
+                                        </select>
+                                        <button id="refresh-comments" class="btn btn-secondary">Refresh</button>
+                                    </div>
+                                </div>
+                                <div id="comments-list" class="comments-list">
+                                    <div class="loading">Loading comments...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analytics Tab -->
+                        <div id="analytics-tab" class="tab-pane">
+                            <div class="analytics-grid">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3>Sentiment Analysis</h3>
+                                    </div>
+                                    <div id="sentiment-chart" class="sentiment-chart">
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label positive">😊 Positive</div>
+                                            <div class="sentiment-bar">
+                                                <div id="positive-bar" class="sentiment-fill positive"></div>
+                                            </div>
+                                            <span id="positive-count">0</span>
+                                        </div>
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label neutral">😐 Neutral</div>
+                                            <div class="sentiment-bar">
+                                                <div id="neutral-bar" class="sentiment-fill neutral"></div>
+                                            </div>
+                                            <span id="neutral-count">0</span>
+                                        </div>
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label negative">😞 Negative</div>
+                                            <div class="sentiment-bar">
+                                                <div id="negative-bar" class="sentiment-fill negative"></div>
+                                            </div>
+                                            <span id="negative-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Comment Modal -->
+    <div id="comment-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Comment Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="comment-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
