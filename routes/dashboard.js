@@ -1,6 +1,8 @@
 const express = require('express');
 const youtubeService = require('../services/youtubeService');
 const sentimentService = require('../services/sentimentService');
+const CommentRecord = require('../models/CommentRecord');
+const ApiCounter = require('../models/ApiCounter');
 const router = express.Router();
 
 // Get dashboard overview data
@@ -12,16 +14,19 @@ router.get('/overview', async (req, res) => {
       youtubeService.getRecentComments(24)
     ]);
 
-    // Calculate analytics
     const totalViews = videos.reduce((sum, video) => sum + video.viewCount, 0);
     const totalLikes = videos.reduce((sum, video) => sum + video.likeCount, 0);
     const totalComments = videos.reduce((sum, video) => sum + video.commentCount, 0);
 
-    // Analyze recent comments sentiment
     const sentimentCounts = { positive: 0, negative: 0, neutral: 0 };
+
     for (const comment of recentComments.slice(0, 20)) {
-      const sentiment = await sentimentService.analyzeSentiment(comment.text);
-      sentimentCounts[sentiment.sentiment]++;
+      const record = await CommentRecord.findOne({ commentId: comment.id });
+      if (record) {
+        sentimentCounts[record.sentiment.sentiment]++;
+      } else {
+        sentimentCounts.neutral++; // Default if no sentiment stored
+      }
     }
 
     res.json({
@@ -37,6 +42,7 @@ router.get('/overview', async (req, res) => {
       recentComments: recentComments.slice(0, 10)
     });
   } catch (error) {
+    console.error('❌ Error in /overview:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -46,7 +52,7 @@ router.get('/analytics/sentiment', async (req, res) => {
   try {
     const hours = parseInt(req.query.hours) || 168; // Default 7 days
     const comments = await youtubeService.getRecentComments(hours);
-    
+
     const sentimentData = {
       positive: [],
       negative: [],
@@ -54,24 +60,26 @@ router.get('/analytics/sentiment', async (req, res) => {
       timeline: []
     };
 
-    // Process comments in batches to avoid rate limits
-    const batchSize = 10;
-    for (let i = 0; i < Math.min(comments.length, 100); i += batchSize) {
-      const batch = comments.slice(i, i + batchSize);
-      
-      for (const comment of batch) {
-        const sentiment = await sentimentService.analyzeSentiment(comment.text);
-        sentimentData[sentiment.sentiment].push({
-          comment: comment.text,
-          confidence: sentiment.confidence,
-          publishedAt: comment.publishedAt,
-          videoTitle: comment.videoTitle
-        });
-      }
+    for (const comment of comments.slice(0, 100)) {
+      const record = await CommentRecord.findOne({ commentId: comment.id });
+      if (!record) continue;
+
+      sentimentData[record.sentiment.sentiment].push({
+        comment: comment.text,
+        confidence: record.sentiment.confidence,
+        publishedAt: comment.publishedAt,
+        videoTitle: comment.videoTitle
+      });
+
+      sentimentData.timeline.push({
+        sentiment: record.sentiment.sentiment,
+        publishedAt: comment.publishedAt
+      });
     }
 
     res.json(sentimentData);
   } catch (error) {
+    console.error('❌ Error in /analytics/sentiment:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -80,19 +88,20 @@ router.get('/analytics/sentiment', async (req, res) => {
 router.post('/auto-reply/toggle', (req, res) => {
   try {
     const { enabled } = req.body;
-    
+
     if (enabled) {
       sentimentService.startMonitoring();
     } else {
       sentimentService.stopMonitoring();
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       autoReplyEnabled: enabled,
       message: `Auto-reply ${enabled ? 'enabled' : 'disabled'}`
     });
   } catch (error) {
+    console.error('❌ Error in /auto-reply/toggle:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -107,7 +116,7 @@ router.get('/auto-reply/status', (req, res) => {
   });
 });
 
-// Manual comment monitoring trigger
+// Manual trigger for comment monitoring
 router.post('/monitor/trigger', async (req, res) => {
   try {
     const results = await sentimentService.monitorComments();
@@ -117,7 +126,19 @@ router.post('/monitor/trigger', async (req, res) => {
       results: results || []
     });
   } catch (error) {
+    console.error('❌ Error in /monitor/trigger:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Gemini API usage counter
+router.get('/analytics/gemini-usage', async (req, res) => {
+  try {
+    const counter = await ApiCounter.findById('geminiSentimentApi');
+    res.json({ totalApiCalls: counter ? counter.count : 0 });
+  } catch (error) {
+    console.error('❌ Error in /analytics/gemini-usage:', error);
+    res.status(500).json({ error: 'Failed to fetch API call count' });
   }
 });
 
