@@ -226,6 +226,7 @@ class SentimentService {
 
     if (sentiment.sentiment === 'positive' && sentiment.confidence > 0.6) return true;
     if (sentiment.sentiment === 'negative' && sentiment.toxicity < 0.7) return true;
+    if (sentiment.sentiment === 'neutral') return true; 
     
     return false;
   }
