@@ -3,36 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Dashboard</title>
+    <title>Social Media Dashboard</title> <!-- Changed title to be more generic -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* New styles for the auth cards grid */
+        .auth-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Forces 3 columns for the 3 cards */
+            gap: 20px; /* Space between cards */
+            margin-top: 30px;
+            justify-content: center; /* Center the grid items */
+            align-items: stretch; /* Make cards stretch to same height */
+        }
+
+        /* Media query for responsiveness: stack cards on smaller screens */
+        @media (max-width: 900px) { /* Adjust breakpoint as needed */
+            .auth-cards-grid {
+                grid-template-columns: 1fr; /* Stack into a single column */
+            }
+        }
+
+        .auth-cards-grid .auth-card {
+            padding: 25px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Push button to bottom */
+            align-items: center;
+        }
+
+        .auth-cards-grid .auth-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .auth-cards-grid .auth-card p {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 25px;
+            flex-grow: 1; /* Allow paragraph to take up available space */
+        }
+
+        .card-section-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-section-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+
+        .card-section-header p {
+            font-size: 1.1rem;
+            color: #4a5568;
+        }
+
+        /* Adjustments for the main auth-required container */
+        .auth-required {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 100px); /* Adjust based on header/footer if any */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
         <!-- Header -->
-        <header class="header">
-            <div class="container">
-                <div class="header-content">
-                    <h1 class="logo">📺 YouTube Dashboard</h1>
-                    <div class="header-actions">
-                        <div id="auth-status" class="auth-status"></div>
-                        <button id="auth-btn" class="btn btn-primary">Connect YouTube</button>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <header class="header" style="
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 4rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+">
+    <div class="header-content" style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    ">
+        <div class="logo" style="display: flex; align-items: center; gap: 0.5rem;">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiSBJFZEb5iLIQP7qvgtTFG1_rXIusPnsoKQ&s" alt="Logo" style="height: 30px; width: auto;">
+            <span style="color: white; font-size: 1.5rem; font-weight: 600;">Social Dashboard</span>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 0.5rem;">
+            <div id="youtube-auth-status" class="auth-status"></div>
+            <button id="youtube-auth-btn" class="btn btn-primary glass-button">Connect YouTube</button>
+
+            <div id="twitter-auth-status" class="auth-status"></div>
+            <button id="twitter-auth-btn" class="btn btn-primary glass-button">Connect Twitter</button>
+
+            <div id="linkedin-auth-status" class="auth-status"></div>
+            <button id="linkedin-auth-btn" class="btn btn-primary glass-button">Connect LinkedIn</button>
+        </div>
+    </div>
+</header>
+
+
 
         <!-- Main Content -->
         <main class="main">
             <div class="container">
-                <!-- Auth Required Message -->
+                <!-- Auth Required Message - Now with multiple cards -->
                 <div id="auth-required" class="auth-required">
-                    <div class="auth-card">
-                        <h2>🔐 Authentication Required</h2>
-                        <p>Please connect your YouTube account to access the dashboard.</p>
-                        <button onclick="authenticateYouTube()" class="btn btn-primary btn-large">
-                            Connect YouTube Account
-                        </button>
+                    <div class="card-section-header">
+                        <h2>🔐 Connect Your Accounts</h2>
+                        <p>Please connect your social media accounts to access the dashboard features.</p>
+                    </div>
+                    <div  class="auth-cards-grid">
+                        <div class="auth-card card" id="yt-auth-card">
+                            <h3>YouTube Account</h3>
+                            <p>Manage your YouTube videos, comments, and auto-reply settings.</p>
+                            <button onclick="dashboard.authenticateYouTube()"  class="btn btn-primary btn-large glass-button">
+                                Connect YouTube
+                            </button>
+                        </div>
+                        <div class="auth-card card" id="twitter-auth-card">
+                            <h3>Twitter Account</h3>
+                            <p>Manage your Twitter posts, replies, and sentiment analysis.</p>
+                            <button onclick="dashboard.authenticateTwitter()" class="btn btn-primary btn-large glass-button">
+                                Connect Twitter
+                            </button>
+                        </div>
+                        <div class="auth-card card" id="linkedin-auth-card" >
+                            <h3>LinkedIn Account</h3>
+                            <p>LinkedIn integration is coming soon! Stay tuned for updates.</p>
+                            <button onclick="alert('LinkedIn integration coming soon!');" class="btn btn-primary btn-large glass-button">
+                                Connect LinkedIn
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -81,25 +195,32 @@
                         </div>
                         <div class="auto-reply-status">
                             <p id="auto-reply-status">Auto-reply is disabled</p>
-                            <button id="manual-monitor" class="btn btn-secondary">Check Comments Now</button>
+                            <button id="manual-monitor" class="btn btn-secondary glass-button">Check Comments Now</button>
                         </div>
                     </div>
+                    
 
-                    <!-- Tabs -->
+                    <!-- Platform-Specific Tabs -->
                     <div class="tabs">
-                        <button class="tab-btn active" data-tab="videos">📹 Videos</button>
-                        <button class="tab-btn" data-tab="comments">💬 Comments</button>
-                        <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+                        <button class="tab-btn active" data-tab="youtube-videos">📹 YouTube Videos</button>
+                        <button class="tab-btn" data-tab="youtube-comments">💬 YouTube Comments</button>
+                        <button class="tab-btn" data-tab="youtube-analytics">📊 YouTube Analytics</button>
+                        
+                        <button class="tab-btn" data-tab="twitter-posts">🐦 Twitter Posts</button>
+                        <button class="tab-btn" data-tab="twitter-analytics">📈 Twitter Analytics</button>
+
+                        <button class="tab-btn" data-tab="linkedin-posts">💼 LinkedIn Posts</button>
+                        <!-- Add more LinkedIn tabs as needed -->
                     </div>
 
                     <!-- Tab Content -->
                     <div class="tab-content">
-                        <!-- Videos Tab -->
-                        <div id="videos-tab" class="tab-pane active">
+                        <!-- YouTube Videos Tab -->
+                        <div id="youtube-videos-tab" class="tab-pane active">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3>Recent Videos</h3>
-                                    <button id="refresh-videos" class="btn btn-secondary">Refresh</button>
+                                    <h3>Recent YouTube Videos</h3>
+                                    <button id="refresh-videos" class="btn btn-secondary glass-button">Refresh</button>
                                 </div>
                                 <div id="videos-list" class="videos-list">
                                     <div class="loading">Loading videos...</div>
@@ -107,18 +228,18 @@
                             </div>
                         </div>
 
-                        <!-- Comments Tab -->
-                        <div id="comments-tab" class="tab-pane">
+                        <!-- YouTube Comments Tab -->
+                        <div id="youtube-comments-tab" class="tab-pane">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3>Recent Comments</h3>
+                                    <h3>Recent YouTube Comments</h3>
                                     <div class="comment-filters">
-                                        <select id="time-filter" class="select">
+                                        <select id="time-filter" class="select glass-button">
                                             <option value="24">Last 24 hours</option>
                                             <option value="168">Last week</option>
                                             <option value="720">Last month</option>
                                         </select>
-                                        <button id="refresh-comments" class="btn btn-secondary">Refresh</button>
+                                        <button id="refresh-comments" class="btn btn-secondary glass-button">Refresh</button>
                                     </div>
                                 </div>
                                 <div id="comments-list" class="comments-list">
@@ -127,12 +248,12 @@
                             </div>
                         </div>
 
-                        <!-- Analytics Tab -->
-                        <div id="analytics-tab" class="tab-pane">
+                        <!-- YouTube Analytics Tab -->
+                        <div id="youtube-analytics-tab" class="tab-pane">
                             <div class="analytics-grid">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h3>Sentiment Analysis</h3>
+                                        <h3>YouTube Sentiment Analysis</h3>
                                     </div>
                                     <div id="sentiment-chart" class="sentiment-chart">
                                         <div class="sentiment-item">
@@ -160,17 +281,84 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Twitter Posts Tab -->
+                        <div id="twitter-posts-tab" class="tab-pane">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Recent Twitter Posts</h3>
+                                    <button id="refresh-twitter-posts" class="btn btn-secondary glass-button">Refresh</button>
+                                </div>
+                                <div id="twitter-posts-list" class="posts-list">
+                                    <div class="loading">Loading Twitter posts...</div>
+                                    <div class="text-center mt-4 text-gray-500">
+                                        Connect your Twitter account to see posts here.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Twitter Analytics Tab -->
+                        <div id="twitter-analytics-tab" class="tab-pane">
+                            <div class="analytics-grid">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3>Twitter Sentiment Analysis</h3>
+                                    </div>
+                                    <div id="twitter-sentiment-chart" class="sentiment-chart">
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label positive">😊 Positive</div>
+                                            <div class="sentiment-bar">
+                                                <div id="twitter-positive-bar" class="sentiment-fill positive"></div>
+                                            </div>
+                                            <span id="twitter-positive-count">0</span>
+                                        </div>
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label neutral">😐 Neutral</div>
+                                            <div class="sentiment-bar">
+                                                <div id="twitter-neutral-bar" class="sentiment-fill neutral"></div>
+                                            </div>
+                                            <span id="twitter-neutral-count">0</span>
+                                        </div>
+                                        <div class="sentiment-item">
+                                            <div class="sentiment-label negative">😞 Negative</div>
+                                            <div class="sentiment-bar">
+                                                <div id="twitter-negative-bar" class="sentiment-fill negative"></div>
+                                            </div>
+                                            <span id="twitter-negative-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LinkedIn Posts Tab (Placeholder) -->
+                        <div id="linkedin-posts-tab" class="tab-pane">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Recent LinkedIn Posts</h3>
+                                    <button id="refresh-linkedin-posts" class="btn btn-secondary glass-button">Refresh</button>
+                                </div>
+                                <div id="linkedin-posts-list" class="posts-list">
+                                    <div class="loading">Loading LinkedIn posts...</div>
+                                    <div class="text-center mt-4 text-gray-500">
+                                        LinkedIn integration coming soon!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Comment Modal -->
+    <!-- Comment Modal (reused for Twitter/LinkedIn comments/replies) -->
     <div id="comment-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Comment Details</h3>
+                <h3>Details</h3> <!-- Generic title -->
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
@@ -179,6 +367,7 @@
         </div>
     </div>
 
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script> -->
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,12 +1,19 @@
-const youtubeConfig = require('../config/youtube');
+const { google } = require('googleapis'); // Keep this if used in youtubeConfig
+const youtubeConfig = require('../config/youtube'); // Assume this still provides the client
 const moment = require('moment');
 
 class YouTubeService {
   constructor() {
-    this.youtube = youtubeConfig.getYouTubeClient();
+    // This will now use the client provided by youtubeConfig.
+    // This client needs to be configured with an API key or fixed OAuth tokens
+    // if you want any background functionality without a User model.
+    this.youtube = youtubeConfig.getYouTubeClient(); 
   }
 
-  async getChannelInfo() {
+  // All methods below revert to not accepting a 'tokens' parameter
+  // and instead use 'this.youtube'.
+
+  async getChannelInfo() { // Removed tokens parameter
     const response = await this.youtube.channels.list({
       part: ['snippet', 'statistics', 'contentDetails'],
       mine: true
@@ -29,8 +36,8 @@ class YouTubeService {
     };
   }
 
-  async getVideos(maxResults = 50) {
-    const channelInfo = await this.getChannelInfo();
+  async getVideos(maxResults = 50) { // Removed tokens parameter
+    const channelInfo = await this.getChannelInfo(); // No tokens passed here
     const response = await this.youtube.playlistItems.list({
       part: ['snippet', 'contentDetails'],
       playlistId: channelInfo.uploadsPlaylistId,
@@ -39,7 +46,6 @@ class YouTubeService {
 
     const videoIds = response.data.items.map(item => item.contentDetails.videoId);
 
-    // Get detailed video info including statistics + status
     const videosResponse = await this.youtube.videos.list({
       part: ['statistics', 'status', 'snippet'],
       id: videoIds
@@ -51,7 +57,7 @@ class YouTubeService {
       description: video.snippet.description,
       thumbnail: video.snippet.thumbnails.medium.url,
       publishedAt: video.snippet.publishedAt,
-      publishedAtFormatted: moment(video.snippet.publishedAt).format('MMM DD, YYYY'),
+      publishedAtFormatted: moment(video.snippet.publishedAt).format('MMM DD,YYYY HH:mm'),
       viewCount: parseInt(video.statistics.viewCount || 0),
       likeCount: parseInt(video.statistics.likeCount || 0),
       commentCount: parseInt(video.statistics.commentCount || 0),
@@ -59,7 +65,7 @@ class YouTubeService {
     }));
   }
 
-  async getVideoComments(videoId, maxResults = 100) {
+  async getVideoComments(videoId, maxResults = 100) { // Removed tokens parameter
     const response = await this.youtube.commentThreads.list({
       part: ['snippet', 'replies'],
       videoId,
@@ -76,7 +82,7 @@ class YouTubeService {
           author: reply.snippet.authorDisplayName,
           authorProfileImageUrl: reply.snippet.authorProfileImageUrl,
           publishedAt: reply.snippet.publishedAt,
-          publishedAtFormatted: moment(reply.snippet.publishedAt).format('MMM DD, YYYY HH:mm'),
+          publishedAtFormatted: moment(reply.snippet.publishedAt).format('MMM DD,YYYY HH:mm'),
           likeCount: reply.snippet.likeCount
         })) : [];
 
@@ -86,7 +92,7 @@ class YouTubeService {
           author: comment.authorDisplayName,
           authorProfileImageUrl: comment.authorProfileImageUrl,
           publishedAt: comment.publishedAt,
-          publishedAtFormatted: moment(comment.publishedAt).format('MMM DD, YYYY HH:mm'),
+          publishedAtFormatted: moment(comment.publishedAt).format('MMM DD,YYYY HH:mm'),
           likeCount: comment.likeCount,
           replyCount: item.snippet.totalReplyCount || 0,
           replies
@@ -96,8 +102,9 @@ class YouTubeService {
     };
   }
 
-  async getRecentComments(hours = 24) {
-    const videos = await this.getVideos(10);
+  async getRecentComments(hours = 24) { // Removed tokens parameter
+    // Now relies on 'this.youtube' which is from youtubeConfig.getYouTubeClient()
+    const videos = await this.getVideos(10); // No tokens passed here
     const cutoffTime = moment().subtract(hours, 'hours');
     const recentComments = [];
 
@@ -108,7 +115,7 @@ class YouTubeService {
       }
 
       try {
-        const { comments } = await this.getVideoComments(video.id, 50);
+        const { comments } = await this.getVideoComments(video.id, 50); // No tokens passed here
         const newComments = comments.filter(comment =>
           moment(comment.publishedAt).isAfter(cutoffTime)
         );
@@ -128,22 +135,31 @@ class YouTubeService {
     );
   }
 
-  async replyToComment(commentId, text) {
-    const response = await this.youtube.comments.insert({
-      part: ['snippet'],
-      requestBody: {
-        snippet: {
-          parentId: commentId,
-          textOriginal: text
-        }
-      }
-    });
+  async replyToComment(commentId, text) { // Removed tokens parameter
+    try {
+        const response = await this.youtube.comments.insert({
+          part: ['snippet'],
+          requestBody: {
+            snippet: {
+              parentId: commentId,
+              textOriginal: text
+            }
+          }
+        });
 
-    return {
-      id: response.data.id,
-      text: response.data.snippet.textOriginal,
-      publishedAt: response.data.snippet.publishedAt
-    };
+        console.log(`✅ YouTube API replied to comment ${commentId}. Response:`, response.data);
+        return {
+          id: response.data.id,
+          text: response.data.snippet.textOriginal,
+          publishedAt: response.data.snippet.publishedAt
+        };
+    } catch (error) {
+        console.error(`❌ Error sending reply to comment ${commentId}:`, error.message);
+        if (error.response && error.response.data) {
+            console.error('YouTube API error details for reply:', error.response.data);
+        }
+        throw error;
+    }
   }
 }
 

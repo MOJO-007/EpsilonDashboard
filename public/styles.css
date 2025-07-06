@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #000000 0%, #2d3436 100%);
     min-height: 100vh;
     color: #333;
     line-height: 1.6;
@@ -192,11 +192,24 @@ body {
 
 /* Cards */
 .card {
-    background: white;
+    background: transparent;  /* fully transparent, no color fill */
+    border: 1px solid rgba(255, 255, 255, 0.2);  /* soft white border */
     border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        0 6px 12px rgba(255, 255, 255, 0.15),
+        0 0 12px rgba(255, 255, 255, 0.1);
     overflow: hidden;
+    color: #f9fafb;  /* white text inside */
 }
+
+
+.auth-card h3,
+.auth-card p {
+    color: #f9fafb !important;
+}
+
+
+
 
 .card-header {
     display: flex;
@@ -209,8 +222,28 @@ body {
 .card-header h3 {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #1f2937;
+    color: #f9fafb;
 }
+.card-section-header {
+    background: transparent !important; /* force transparency */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* optional soft border */
+    box-shadow: 
+        0 6px 12px rgba(255, 255, 255, 0.15),
+        0 0 12px rgba(255, 255, 255, 0.1);
+    color: #f9fafb !important; /* bright white text */
+}
+
+.card-section-header h2,
+.card-section-header p {
+    color: #f9fafb !important; /* ensure white text */
+}
+
+
+.card-section-header h2,
+.card-section-header p {
+    color: #f9fafb !important;
+}
+
 
 /* Auto-Reply Card */
 .auto-reply-card .card-header {
@@ -267,11 +300,14 @@ body {
 /* Tabs */
 .tabs {
     display: flex;
-    background: white;
+    background: rgba(255, 255, 255, 0.05); /* subtle white tint */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* soft border like cards */
     border-radius: 12px;
     padding: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    box-shadow: 
+        0 6px 12px rgba(255, 255, 255, 0.15),  /* outer glow */
+        0 0 12px rgba(255, 255, 255, 0.1);     /* inner gentle glow */
+    margin: 1.5rem 0; 
 }
 
 .tab-btn {
@@ -283,16 +319,17 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #6b7280;
+    color: #f9fafb; /* white text to match card style */
 }
 
 .tab-btn.active {
-    background: #4f46e5;
-    color: white;
+    background: rgba(255, 255, 255, 0.2); /* soft white active tab */
+    color: #f9fafb; /* dark text for readability */
 }
 
 .tab-btn:hover:not(.active) {
-    background: #f3f4f6;
+    background: rgba(255, 255, 255, 0.1); /* subtle white tint on hover */
+    color: #f9fafb; /* keep text white on hover */
 }
 
 /* Tab Content */
@@ -302,6 +339,7 @@ body {
 
 .tab-pane.active {
     display: block;
+
 }
 
 /* Videos List */
@@ -336,10 +374,15 @@ body {
 
 .video-title {
     font-weight: 600;
-    color: #1f2937;
+    color: #f9fafb;
     margin-bottom: 0.5rem;
     line-height: 1.4;
 }
+.video-item:hover .video-title {
+    color: #111827; /* or #000 if you want pure black */
+}
+
+
 
 .video-meta {
     display: flex;
@@ -619,3 +662,150 @@ body {
 .hidden {
     display: none !important;
 }
+
+.header {
+    background: linear-gradient(135deg, #000000 0%, #2d3436 100%);  /* deep indigo solid */
+    border-bottom: 1px solid #6366f1;
+    color: #f9fafb !important;
+    border: 0;
+}
+.header,
+.header * {
+    color: #f9fafb !important;
+}
+
+
+
+.glass-button {
+    border: 2px solid white;
+    border-radius: 10%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #f9fafb;
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+.glass-button {
+    border: 2px solid white;
+    border-radius: 10%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #f9fafb;
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease, color 0.3s ease, background 0.3s ease;
+}
+
+.glass-button:hover {
+    background: rgba(255, 255, 255, 0.9) !important;   /* almost solid white */
+    color: #111827 !important;  /* black text (you can also use #000) */
+    box-shadow: 0 6px 12px rgba(255, 255, 255, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px) scale(1.02);  /* subtle lift and grow */
+}
+
+#youtube-auth-status,
+#twitter-auth-status,
+#linkedin-auth-status {
+    background: transparent;   /* remove any background */
+    border: none;              /* remove any border */
+    padding: 0;                /* remove padding */
+    margin: 0;                 /* remove margin */
+    width: auto;               /* reset width */
+    height: auto;              /* reset height */
+}
+
+#youtube-auth-btn {
+    margin-right: 30px; /* adjust as needed */
+}
+
+#twitter-auth-btn {
+    margin-right: 30px; /* adjust as needed */
+}
+
+/* No margin-right on LinkedIn so the last button aligns cleanly */
+#youtube-auth-status,
+#twitter-auth-status,
+#linkedin-auth-status{
+    margin-right: 5px;
+}
+
+#yt-auth-card {
+    position: relative;
+    overflow: hidden; /* ensures nothing spills outside */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Watermark YouTube logo fully contained */
+#yt-auth-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png') no-repeat center center;
+    background-size: 80% 80%;  /* shrink the image so there’s space around */
+    opacity: 0.03;
+    pointer-events: none;
+}
+
+/* Hover effect */
+#yt-auth-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
+}
+
+#twitter-auth-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#twitter-auth-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://cdn-icons-png.flaticon.com/128/5968/5968958.png') no-repeat center 42%;
+    background-size: 85% 85%;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+#twitter-auth-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
+}
+
+
+#linkedin-auth-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#linkedin-auth-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://cdn-icons-png.flaticon.com/128/174/174857.png') no-repeat center 42%; /* pushes image slightly up */
+    background-size: 85% 85%; /* smaller like Twitter */
+    opacity: 0.06;
+    pointer-events: none;
+}
+
+#linkedin-auth-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
+}
+
+
+
+
+
+
