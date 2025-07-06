@@ -1,8 +1,9 @@
 const ApiCounter = require('../models/ApiCounter');
 const { default: fetch } = require('node-fetch');
 const cron = require('node-cron');
-const youtubeService = require('./youtubeService');
+const youtubeService = require('./youtubeService'); // Now expects tokens for API calls
 const CommentRecord = require('../models/CommentRecord');
+const User = require('../models/User'); // Assuming you have a User model where tokens are stored
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -26,8 +27,6 @@ class SentimentService {
 
   async analyzeSentiment(text) {
     try {
-      // This log indicates that the API is about to be called.
-      // If you see this for comments that should be skipped, the 'existing' check failed.
       console.log(`⚡ Gemini API CALLED for text: "${text.slice(0, 50)}..."`);
       
       const prompt = `Analyze the sentiment of this comment and provide a JSON response:
@@ -66,6 +65,9 @@ class SentimentService {
 
       const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const cleanedText = generatedText.replace(/```json\n?|\n?```/g, '').trim();
+
+      // DEBUG: Log the parsed sentiment result
+      console.log('Parsed Sentiment Result:', JSON.stringify(JSON.parse(cleanedText), null, 2));
 
       return JSON.parse(cleanedText);
     } catch (error) {
@@ -113,44 +115,36 @@ class SentimentService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Gemini API Error:', errorData);
+        console.error('Gemini API Error (Reply Generation):', errorData);
         throw new Error(`Reply generation failed: ${response.status}`);
       }
 
       const result = await response.json();
-      return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Thank you for your comment! 😊';
+      const replyText = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Thank you for your comment! 😊';
+      console.log(`💬 Generated reply text for "${comment.text.slice(0, 30)}...": "${replyText}"`);
+      return replyText;
+
     } catch (error) {
       console.error('❌ Error generating reply:', error.message);
       return 'Thank you for your comment! 😊';
     }
   }
 
-  async processComment(comment) {
+  // Modified to accept `tokens` parameter
+  async processComment(comment, tokens) {
     try {
-      // DEBUG: Log the comment ID being checked
       console.log(`🔍 Processing comment ID: ${comment.id} (Type: ${typeof comment.id})`);
 
       const existing = await CommentRecord.findOne({ commentId: comment.id });
 
-      // DEBUG: Log whether an existing record was found
       if (existing) {
         console.log(`ℹ️ Already processed: ${comment.id}. Found existing record with ID: ${existing._id}`);
         console.log(`   Stored commentId: ${existing.commentId} (Type: ${typeof existing.commentId})`);
-        return null;  // Do not count already processed comment
+        return null;
       }
 
       console.log(`✨ No existing record found for ${comment.id}. Proceeding with sentiment analysis.`);
       const sentiment = await this.analyzeSentiment(comment.text);
-
-      const record = await CommentRecord.create({
-        commentId: comment.id,
-        sentiment: sentiment, // Ensure sentiment object is saved correctly
-        // You might want to save more details from the YouTube comment here
-        // e.g., text: comment.text, author: comment.author, publishedAt: comment.publishedAt, videoId: comment.videoId
-      });
-      // DEBUG: Confirm the new record was created
-      console.log(`💾 New CommentRecord created for ID: ${record.commentId} (DB ID: ${record._id})`);
-
 
       const result = {
         comment,
@@ -159,17 +153,66 @@ class SentimentService {
         reply: null
       };
 
+      // DEBUG: Log the overall auto-reply enabled status
+      console.log(`⚙️ AUTO_REPLY_ENABLED environment variable: ${process.env.AUTO_REPLY_ENABLED}`);
+      console.log(`❓ shouldAutoReply based on sentiment: ${result.shouldReply}`);
+
+
+      // IMPORTANT: Check if AUTO_REPLY_ENABLED is truly 'true' (string)
       if (result.shouldReply && process.env.AUTO_REPLY_ENABLED === 'true') {
-        const replyText = await this.generateReply(comment, sentiment);
-        // Assuming youtubeService.replyToComment exists and works
-        const reply = await youtubeService.replyToComment(comment.id, replyText);
+        try {
+          const replyText = await this.generateReply(comment, sentiment);
+          
+          // Pass the tokens to youtubeService.replyToComment
+          console.log(`➡️ Attempting to reply to YouTube comment ${comment.id} using provided tokens...`);
+          const replyResponse = await youtubeService.replyToComment(comment.id, replyText, tokens); 
+          console.log(`✅ YouTube API reply attempt complete for ${comment.id}. Response:`, replyResponse);
 
-        record.replied = true;
-        record.repliedAt = new Date();
-        await record.save();
+          // Create/Update record *after* successful reply (or try-catch for failure)
+          const record = await CommentRecord.create({
+            commentId: comment.id,
+            sentiment: sentiment,
+            text: comment.text, // Save comment text
+            author: comment.author, // Save author
+            publishedAt: comment.publishedAt, // Save publish date
+            videoId: comment.videoId, // Save video ID
+            replied: true,
+            repliedAt: new Date(),
+            replyText: replyText // Save the reply text
+          });
+          console.log(`💾 New CommentRecord created and marked as replied for ID: ${record.commentId} (DB ID: ${record._id})`);
 
-        result.reply = reply;
-        console.log(`✅ Auto-replied to ${comment.id}: ${replyText}`);
+          result.reply = replyResponse; // Store the response from YouTube API
+          console.log(`🎉 Successfully auto-replied to ${comment.id}`);
+
+        } catch (replyError) {
+          console.error(`❌ Error auto-replying to comment ${comment.id}:`, replyError.message);
+          // If reply fails, still save the comment record without marking it as replied
+          await CommentRecord.create({
+            commentId: comment.id,
+            sentiment: sentiment,
+            text: comment.text,
+            author: comment.author,
+            publishedAt: comment.publishedAt,
+            videoId: comment.videoId,
+            replied: false, // Mark as not replied due to error
+            errorMessage: replyError.message // Store the error message
+          });
+          console.log(`💾 CommentRecord created but not replied due to error for ID: ${comment.id}`);
+        }
+      } else {
+        // If not replying, create the record without reply details
+        const record = await CommentRecord.create({
+          commentId: comment.id,
+          sentiment: sentiment,
+          text: comment.text,
+          author: comment.author,
+          publishedAt: comment.publishedAt,
+          videoId: comment.videoId,
+          replied: false,
+        });
+        console.log(`💾 CommentRecord created (no reply) for ID: ${record.commentId} (DB ID: ${record._id})`);
+        console.log(`🚫 Skipped auto-reply for comment ${comment.id}. Should reply: ${result.shouldReply}, Auto-reply enabled: ${process.env.AUTO_REPLY_ENABLED}`);
       }
 
       return result;
@@ -187,22 +230,43 @@ class SentimentService {
   shouldAutoReply(sentiment) {
     const threshold = parseFloat(process.env.SENTIMENT_THRESHOLD || 0.3);
 
-    if (sentiment.sentiment === 'positive' && sentiment.confidence > 0.8) return true;
-    if (sentiment.sentiment === 'negative' && sentiment.toxicity < 0.8) return true;
-    if (sentiment.sentiment === 'neutral' && sentiment.confidence < threshold) return true;
+    // --- You can modify this logic based on your desired reply strategy ---
+    // For testing, you might simplify it, e.g., `return true;` to always reply.
+    // Ensure SENTIMENT_THRESHOLD is set in your environment if you rely on it.
 
-    return false;
+    if (sentiment.sentiment === 'positive' && sentiment.confidence > 0.6) return true;
+    if (sentiment.sentiment === 'negative' && sentiment.toxicity < 0.7) return true; // Reply to less toxic negative comments
+    // Example: If you want to reply to neutral comments too:
+    // if (sentiment.sentiment === 'neutral' && sentiment.confidence > 0.7) return true;
+
+    return false; // Default to not replying if no specific condition is met
   }
 
   async monitorComments() {
     try {
       console.log('🔍 Checking for new comments...');
-      // Fetch comments from the last 1 hour. If you want to test with older comments that might already be in DB,
-      // temporarily increase this value (e.g., 24 for 24 hours, 168 for 7 days).
-      const recentComments = await youtubeService.getRecentComments(1); 
+      
+      // --- IMPORTANT: FETCH USER TOKENS FROM YOUR DATABASE HERE ---
+      // This is a placeholder. You need to implement how your application
+      // retrieves the YouTube OAuth tokens for the channel you want to manage.
+      //
+      // Example: If you have a 'User' model and store tokens there:
+      const userWithTokens = await User.findOne({ 'youtubeTokens.access_token': { $exists: true } }); // Find a user who has YouTube tokens
+      
+      if (!userWithTokens || !userWithTokens.youtubeTokens) {
+          console.log('🚫 No authenticated user found with YouTube tokens in the database to monitor comments.');
+          // Consider what to do if no user is found. Maybe log a warning and stop.
+          return;
+      }
+      const userYoutubeTokens = userWithTokens.youtubeTokens;
+      console.log('✅ Fetched YouTube tokens from DB for monitoring.');
+      // --- END IMPORTANT ---
 
-      if (recentComments.length === 0) {
-        console.log('ℹ️ No new comments found');
+
+      const recentComments = await youtubeService.getRecentComments(1, userYoutubeTokens); // Pass tokens to getRecentComments
+
+      if (!recentComments || recentComments.length === 0) {
+        console.log('ℹ️ No new comments found or error fetching comments.');
         return;
       }
 
@@ -210,7 +274,8 @@ class SentimentService {
 
       const results = [];
       for (const comment of recentComments) {
-        const result = await this.processComment(comment);
+        // Pass tokens down to processComment
+        const result = await this.processComment(comment, userYoutubeTokens); 
         if (result) results.push(result);
       }
       console.log(`📊 Monitoring cycle complete. Processed ${results.length} new/updated comments.`);
@@ -227,7 +292,6 @@ class SentimentService {
     }
 
     const interval = process.env.CHECK_INTERVAL_MINUTES || 30;
-    // Ensure cron.schedule is correctly imported and working in your environment
     cron.schedule(`*/${interval} * * * *`, () => {
       console.log(`⏰ Scheduled monitoring run triggered at ${new Date().toISOString()}`);
       this.monitorComments();
