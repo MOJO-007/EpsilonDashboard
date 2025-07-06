@@ -6,12 +6,11 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
-const session = require('express-session'); // <--- ADD THIS LINE: Import express-session
+const session = require('express-session'); // <--- ADDED: Import express-session
 
 const authRoutes = require('./routes/auth');
 const youtubeRoutes = require('./routes/youtube');
 const dashboardRoutes = require('./routes/dashboard');
-const twitterRoutes = require('./routes/twitter'); // <--- ADD THIS LINE: Import Twitter routes
 const sentimentService = require('./services/sentimentService');
 
 const app = express();
@@ -26,7 +25,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://www.googleapis.com", "https://api.twitter.com"] // <--- ADDED Twitter API domain here
+      connectSrc: ["'self'", "https://www.googleapis.com"] // <--- REMOVED Twitter API domain from here
     }
   }
 }));
@@ -41,7 +40,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL : 'http://localhost:3000', // <--- Use RENDER_EXTERNAL_URL in production
+  origin: process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL : 'http://localhost:3000',
   credentials: true
 }));
 
@@ -51,15 +50,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ----------------------------------------------------------------------
 // IMPORTANT: express-session middleware MUST COME BEFORE ANY ROUTES
-// that access req.session (like authRoutes and twitterRoutes).
+// that access req.session (like authRoutes).
 // ----------------------------------------------------------------------
 app.use(session({
     secret: process.env.SESSION_SECRET, // <--- IMPORTANT: Set this in your Render Environment Variables
-    resave: false, // Don't save session if unmodified
-    saveUninitialized: true, // Save new sessions
+    resave: false,
+    saveUninitialized: true,
     cookie: {
       secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
-      httpOnly: true, // Prevent client-side JS from accessing cookie
+      httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000 // Session lasts 24 hours
     }
 }));
@@ -73,7 +72,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/auth', authRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/', twitterRoutes); // <--- ADDED Twitter routes here
+// app.use('/', twitterRoutes); // <--- REMOVED: Twitter routes are commented out/removed
 
 // Serve dashboard (your main entry point)
 app.get('/', (req, res) => {
