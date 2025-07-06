@@ -225,16 +225,19 @@ body {
     color: #f9fafb;
 }
 .card-section-header {
-    background: transparent;  /* fully transparent background */
-    border: 1px solid rgba(255, 255, 255, 0.2);  /* subtle white border */
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
+    background: transparent !important; /* force transparency */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* optional soft border */
     box-shadow: 
-        0 6px 12px rgba(255, 255, 255, 0.15),  /* soft white outer shadow */
-        0 0 12px rgba(255, 255, 255, 0.1);     /* gentle glow */
-    color: #f9fafb;  /* bright white text */
+        0 6px 12px rgba(255, 255, 255, 0.15),
+        0 0 12px rgba(255, 255, 255, 0.1);
+    color: #f9fafb !important; /* bright white text */
 }
+
+.card-section-header h2,
+.card-section-header p {
+    color: #f9fafb !important; /* ensure white text */
+}
+
 
 .card-section-header h2,
 .card-section-header p {
