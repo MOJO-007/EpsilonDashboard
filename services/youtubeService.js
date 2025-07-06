@@ -1,43 +1,20 @@
-const { google } = require('googleapis'); // Import google from googleapis
-const youtubeConfig = require('../config/youtube'); // Make sure this is still correct for client ID/secret, etc.
+const { google } = require('googleapis'); // Keep this if used in youtubeConfig
+const youtubeConfig = require('../config/youtube'); // Assume this still provides the client
 const moment = require('moment');
 
-// Function to create an authenticated OAuth2 client from tokens
-// This is key to ensuring API calls are made on behalf of the correct user.
-function getAuthenticatedClient(tokens) {
-    if (!tokens) {
-        throw new Error('No tokens provided to authenticate YouTube client.');
-    }
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.YOUTUBE_CLIENT_ID, // Ensure these are set in your .env / Render env vars
-        process.env.YOUTUBE_CLIENT_SECRET,
-        process.env.YOUTUBE_REDIRECT_URI // Ensure this is also correctly set for the server context
-    );
-    oauth2Client.setCredentials(tokens);
-    return oauth2Client;
-}
-
-
 class YouTubeService {
-  // The constructor no longer initializes a global 'this.youtube' client directly.
-  // Instead, methods will receive or create an authenticated client.
   constructor() {
-    // We can still keep the youtubeConfig in case it has other shared utilities,
-    // but the main YouTube client will be created per-request/per-job with specific tokens.
+    // This will now use the client provided by youtubeConfig.
+    // This client needs to be configured with an API key or fixed OAuth tokens
+    // if you want any background functionality without a User model.
+    this.youtube = youtubeConfig.getYouTubeClient(); 
   }
 
-  // Helper to get a YouTube client for a specific authenticated context
-  _getYouTubeClient(tokens) {
-      const oauth2Client = getAuthenticatedClient(tokens);
-      return google.youtube({
-          version: 'v3',
-          auth: oauth2Client
-      });
-  }
+  // All methods below revert to not accepting a 'tokens' parameter
+  // and instead use 'this.youtube'.
 
-  async getChannelInfo(tokens) { // <-- Added tokens parameter
-    const youtube = this._getYouTubeClient(tokens); // <-- Use tokens to get client
-    const response = await youtube.channels.list({
+  async getChannelInfo() { // Removed tokens parameter
+    const response = await this.youtube.channels.list({
       part: ['snippet', 'statistics', 'contentDetails'],
       mine: true
     });
@@ -59,10 +36,9 @@ class YouTubeService {
     };
   }
 
-  async getVideos(tokens, maxResults = 50) { // <-- Added tokens parameter
-    const youtube = this._getYouTubeClient(tokens); // <-- Use tokens to get client
-    const channelInfo = await this.getChannelInfo(tokens); // Pass tokens down
-    const response = await youtube.playlistItems.list({
+  async getVideos(maxResults = 50) { // Removed tokens parameter
+    const channelInfo = await this.getChannelInfo(); // No tokens passed here
+    const response = await this.youtube.playlistItems.list({
       part: ['snippet', 'contentDetails'],
       playlistId: channelInfo.uploadsPlaylistId,
       maxResults
@@ -70,8 +46,7 @@ class YouTubeService {
 
     const videoIds = response.data.items.map(item => item.contentDetails.videoId);
 
-    // Get detailed video info including statistics + status
-    const videosResponse = await youtube.videos.list({ // <-- Use tokens to get client
+    const videosResponse = await this.youtube.videos.list({
       part: ['statistics', 'status', 'snippet'],
       id: videoIds
     });
@@ -82,7 +57,7 @@ class YouTubeService {
       description: video.snippet.description,
       thumbnail: video.snippet.thumbnails.medium.url,
       publishedAt: video.snippet.publishedAt,
-      publishedAtFormatted: moment(video.snippet.publishedAt).format('MMM DD,YYYY HH:mm'), // Fixed formatting
+      publishedAtFormatted: moment(video.snippet.publishedAt).format('MMM DD,YYYY HH:mm'),
       viewCount: parseInt(video.statistics.viewCount || 0),
       likeCount: parseInt(video.statistics.likeCount || 0),
       commentCount: parseInt(video.statistics.commentCount || 0),
@@ -90,9 +65,8 @@ class YouTubeService {
     }));
   }
 
-  async getVideoComments(videoId, tokens, maxResults = 100) { // <-- Added tokens parameter
-    const youtube = this._getYouTubeClient(tokens); // <-- Use tokens to get client
-    const response = await youtube.commentThreads.list({
+  async getVideoComments(videoId, maxResults = 100) { // Removed tokens parameter
+    const response = await this.youtube.commentThreads.list({
       part: ['snippet', 'replies'],
       videoId,
       maxResults,
@@ -108,7 +82,7 @@ class YouTubeService {
           author: reply.snippet.authorDisplayName,
           authorProfileImageUrl: reply.snippet.authorProfileImageUrl,
           publishedAt: reply.snippet.publishedAt,
-          publishedAtFormatted: moment(reply.snippet.publishedAt).format('MMM DD,YYYY HH:mm'), // Fixed formatting
+          publishedAtFormatted: moment(reply.snippet.publishedAt).format('MMM DD,YYYY HH:mm'),
           likeCount: reply.snippet.likeCount
         })) : [];
 
@@ -118,7 +92,7 @@ class YouTubeService {
           author: comment.authorDisplayName,
           authorProfileImageUrl: comment.authorProfileImageUrl,
           publishedAt: comment.publishedAt,
-          publishedAtFormatted: moment(comment.publishedAt).format('MMM DD,YYYY HH:mm'), // Fixed formatting
+          publishedAtFormatted: moment(comment.publishedAt).format('MMM DD,YYYY HH:mm'),
           likeCount: comment.likeCount,
           replyCount: item.snippet.totalReplyCount || 0,
           replies
@@ -128,8 +102,9 @@ class YouTubeService {
     };
   }
 
-  async getRecentComments(hours = 24, tokens) { // <-- Added tokens parameter
-    const videos = await this.getVideos(tokens, 10); // Pass tokens down
+  async getRecentComments(hours = 24) { // Removed tokens parameter
+    // Now relies on 'this.youtube' which is from youtubeConfig.getYouTubeClient()
+    const videos = await this.getVideos(10); // No tokens passed here
     const cutoffTime = moment().subtract(hours, 'hours');
     const recentComments = [];
 
@@ -140,7 +115,7 @@ class YouTubeService {
       }
 
       try {
-        const { comments } = await this.getVideoComments(video.id, tokens, 50); // Pass tokens down
+        const { comments } = await this.getVideoComments(video.id, 50); // No tokens passed here
         const newComments = comments.filter(comment =>
           moment(comment.publishedAt).isAfter(cutoffTime)
         );
@@ -160,10 +135,9 @@ class YouTubeService {
     );
   }
 
-  async replyToComment(commentId, text, tokens) { // <-- Added tokens parameter
-    const youtube = this._getYouTubeClient(tokens); // <-- Use tokens to get client
+  async replyToComment(commentId, text) { // Removed tokens parameter
     try {
-        const response = await youtube.comments.insert({
+        const response = await this.youtube.comments.insert({
           part: ['snippet'],
           requestBody: {
             snippet: {
@@ -184,7 +158,7 @@ class YouTubeService {
         if (error.response && error.response.data) {
             console.error('YouTube API error details for reply:', error.response.data);
         }
-        throw error; // Re-throw so calling service can handle
+        throw error;
     }
   }
 }
