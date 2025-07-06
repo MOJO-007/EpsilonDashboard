@@ -64,12 +64,23 @@ router.get('/analytics/sentiment', async (req, res) => {
       const record = await CommentRecord.findOne({ commentId: comment.id });
       if (!record) continue;
 
-      sentimentData[record.sentiment.sentiment].push({
+      // Build full comment object with sentiment
+      const enrichedComment = {
+        commentId: comment.id,
+        author: comment.author || 'Unknown',
+        authorProfileImageUrl: comment.authorProfileImageUrl || '',
         comment: comment.text,
         confidence: record.sentiment.confidence,
         publishedAt: comment.publishedAt,
-        videoTitle: comment.videoTitle
-      });
+        videoTitle: comment.videoTitle,
+        likeCount: comment.likeCount || 0,
+        sentiment: {
+          sentiment: record.sentiment.sentiment,
+          confidence: record.sentiment.confidence
+        }
+      };
+
+      sentimentData[record.sentiment.sentiment].push(enrichedComment);
 
       sentimentData.timeline.push({
         sentiment: record.sentiment.sentiment,
@@ -83,6 +94,7 @@ router.get('/analytics/sentiment', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Control auto-reply settings
 router.post('/auto-reply/toggle', (req, res) => {

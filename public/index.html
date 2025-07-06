@@ -152,11 +152,42 @@
 
                 <!-- Dashboard Content -->
                 <div id="dashboard" class="dashboard" style="display: none;">
-                    
-                    <!-- Global Auto-Reply Controls (can apply to all platforms) -->
+                    <!-- Overview Cards -->
+                    <div class="overview-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-content">
+                                <h3 id="subscriber-count">-</h3>
+                                <p>Subscribers</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">📹</div>
+                            <div class="stat-content">
+                                <h3 id="video-count">-</h3>
+                                <p>Videos</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">👀</div>
+                            <div class="stat-content">
+                                <h3 id="total-views">-</h3>
+                                <p>Total Views</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon">💬</div>
+                            <div class="stat-content">
+                                <h3 id="recent-comments">-</h3>
+                                <p>Recent Comments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Reply Controls -->
                     <div class="card auto-reply-card">
                         <div class="card-header">
-                            <h3>🤖 Auto-Reply Settings (YouTube)</h3> <!-- Specify for YouTube for now -->
+                            <h3>🤖 Auto-Reply Settings</h3>
                             <div class="toggle-switch">
                                 <input type="checkbox" id="auto-reply-toggle" class="toggle-input">
                                 <label for="auto-reply-toggle" class="toggle-label"></label>
@@ -164,9 +195,10 @@
                         </div>
                         <div class="auto-reply-status">
                             <p id="auto-reply-status">Auto-reply is disabled</p>
-                            <button id="manual-monitor" class="btn btn-secondary glass-button">Check YouTube Comments Now</button>
+                            <button id="manual-monitor" class="btn btn-secondary glass-button">Check Comments Now</button>
                         </div>
                     </div>
+                    
 
                     <!-- Platform-Specific Tabs -->
                     <div class="tabs">
@@ -335,6 +367,7 @@
         </div>
     </div>
 
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script> -->
     <script src="script.js"></script>
 </body>
 </html>

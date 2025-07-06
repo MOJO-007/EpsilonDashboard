@@ -132,94 +132,105 @@ class SentimentService {
 
   // Original signature, no `tokens` parameter
   async processComment(comment) {
-    try {
-      console.log(`🔍 Processing comment ID: ${comment.id} (Type: ${typeof comment.id})`);
+  try {
+    console.log(`🔍 Attempting to claim and process comment ID: ${comment.id}`);
 
-      const existing = await CommentRecord.findOne({ commentId: comment.id });
-
-      if (existing) {
-        console.log(`ℹ️ Already processed: ${comment.id}. Found existing record with ID: ${existing._id}`);
-        console.log(`   Stored commentId: ${existing.commentId} (Type: ${typeof existing.commentId})`);
-        return null;
-      }
-
-      console.log(`✨ No existing record found for ${comment.id}. Proceeding with sentiment analysis.`);
-      const sentiment = await this.analyzeSentiment(comment.text);
-
-      const result = {
-        comment,
-        sentiment,
-        shouldReply: this.shouldAutoReply(sentiment),
-        reply: null
-      };
-
-      console.log(`⚙️ AUTO_REPLY_ENABLED environment variable: ${process.env.AUTO_REPLY_ENABLED}`);
-      console.log(`❓ shouldAutoReply based on sentiment: ${result.shouldReply}`);
-
-      if (result.shouldReply && process.env.AUTO_REPLY_ENABLED === 'true') {
-        try {
-          const replyText = await this.generateReply(comment, sentiment);
-          
-          console.log(`➡️ Attempting to reply to YouTube comment ${comment.id}...`);
-          // WARNING: This call will likely fail without tokens.
-          // youtubeService.replyToComment now expects tokens, but we aren't providing them here.
-          const replyResponse = await youtubeService.replyToComment(comment.id, replyText); 
-          console.log(`✅ YouTube API reply attempt complete for ${comment.id}. Response:`, replyResponse);
-
-          const record = await CommentRecord.create({
-            commentId: comment.id,
-            sentiment: sentiment,
-            text: comment.text,
-            author: comment.author,
-            publishedAt: comment.publishedAt,
-            videoId: comment.videoId,
-            replied: true,
-            repliedAt: new Date(),
-            replyText: replyText
-          });
-          console.log(`💾 New CommentRecord created and marked as replied for ID: ${record.commentId} (DB ID: ${record._id})`);
-
-          result.reply = replyResponse;
-          console.log(`🎉 Successfully auto-replied to ${comment.id}`);
-
-        } catch (replyError) {
-          console.error(`❌ Error auto-replying to comment ${comment.id}:`, replyError.message);
-          await CommentRecord.create({
-            commentId: comment.id,
-            sentiment: sentiment,
-            text: comment.text,
-            author: comment.author,
-            publishedAt: comment.publishedAt,
-            videoId: comment.videoId,
-            replied: false,
-            errorMessage: replyError.message
-          });
-          console.log(`💾 CommentRecord created but not replied due to error for ID: ${comment.id}`);
-        }
-      } else {
-        const record = await CommentRecord.create({
+    // STEP 1: Try to claim the comment by inserting a placeholder record
+    const insertResult = await CommentRecord.updateOne(
+      { commentId: comment.id },
+      {
+        $setOnInsert: {
           commentId: comment.id,
-          sentiment: sentiment,
           text: comment.text,
           author: comment.author,
           publishedAt: comment.publishedAt,
           videoId: comment.videoId,
-          replied: false,
-        });
-        console.log(`💾 CommentRecord created (no reply) for ID: ${record.commentId} (DB ID: ${record._id})`);
-        console.log(`🚫 Skipped auto-reply for comment ${comment.id}. Should reply: ${result.shouldReply}, Auto-reply enabled: ${process.env.AUTO_REPLY_ENABLED}`);
-      }
+          sentiment: {},   // will fill after analysis
+          replied: false
+        }
+      },
+      { upsert: true }
+    );
 
-      return result;
-    } catch (error) {
-      if (error.code === 11000) {
-        console.warn(`⚠️ Duplicate comment skipped (likely a race condition or previous failed save): ${comment.id}`);
-      } else {
-        console.error(`❌ Error processing comment ${comment?.id || 'unknown'}:`, error.message);
-      }
+    if (insertResult.upsertedCount === 0) {
+      console.log(`🚫 Skipping already-claimed comment: ${comment.id}`);
       return null;
     }
+
+    console.log(`✨ Successfully claimed comment: ${comment.id}. Proceeding with sentiment analysis.`);
+
+    // STEP 2: Analyze sentiment
+    const sentiment = await this.analyzeSentiment(comment.text);
+
+    // Decide whether to reply
+    const shouldReply = this.shouldAutoReply(sentiment);
+    let replyText = null;
+    let replyResponse = null;
+
+    console.log(`⚙️ AUTO_REPLY_ENABLED: ${process.env.AUTO_REPLY_ENABLED}`);
+    console.log(`❓ Should auto-reply: ${shouldReply}`);
+
+    if (shouldReply && process.env.AUTO_REPLY_ENABLED === 'true') {
+      try {
+        replyText = await this.generateReply(comment, sentiment);
+        console.log(`➡️ Replying to comment ${comment.id} with: "${replyText}"`);
+
+        replyResponse = await youtubeService.replyToComment(comment.id, replyText);
+        console.log(`✅ Replied to comment ${comment.id}:`, replyResponse);
+
+        // Update record with reply
+        await CommentRecord.updateOne(
+          { commentId: comment.id },
+          {
+            $set: {
+              sentiment,
+              replied: true,
+              repliedAt: new Date(),
+              replyText
+            }
+          }
+        );
+
+        console.log(`💾 Updated CommentRecord as replied: ${comment.id}`);
+      } catch (replyError) {
+        console.error(`❌ Error replying to ${comment.id}:`, replyError.message);
+
+        await CommentRecord.updateOne(
+          { commentId: comment.id },
+          {
+            $set: {
+              sentiment,
+              replied: false,
+              errorMessage: replyError.message
+            }
+          }
+        );
+
+        console.log(`💾 Updated CommentRecord with reply failure: ${comment.id}`);
+      }
+    } else {
+      // Just update sentiment, no reply
+      await CommentRecord.updateOne(
+        { commentId: comment.id },
+        { $set: { sentiment } }
+      );
+
+      console.log(`💾 Updated CommentRecord with sentiment only: ${comment.id}`);
+    }
+
+    return {
+      comment,
+      sentiment,
+      shouldReply,
+      reply: replyResponse
+    };
+
+  } catch (error) {
+    console.error(`❌ Fatal error processing comment ${comment.id}:`, error.message);
+    return null;
   }
+}
+
 
   shouldAutoReply(sentiment) {
     const threshold = parseFloat(process.env.SENTIMENT_THRESHOLD || 0.3);
@@ -232,37 +243,46 @@ class SentimentService {
   }
 
   async monitorComments() {
-    try {
-      console.log('🔍 Checking for new comments...');
-      
-      // Removed: Token fetching logic from User model
-      // const userWithTokens = await User.findOne(...);
-      // const userYoutubeTokens = userWithTokens.youtubeTokens;
-      // console.log('✅ Fetched YouTube tokens from DB for monitoring.');
+  try {
+    console.log('🔍 Checking for new comments...');
 
-      // WARNING: youtubeService.getRecentComments will now rely on global/initial auth,
-      // which might not be authenticated for write operations needed for replies.
-      const recentComments = await youtubeService.getRecentComments(1); 
+    const recentComments = await youtubeService.getRecentComments(1); 
 
-      if (!recentComments || recentComments.length === 0) {
-        console.log('ℹ️ No new comments found or error fetching comments.');
-        return;
-      }
-
-      console.log(`📌 Found ${recentComments.length} recent comments from YouTube.`);
-
-      const results = [];
-      for (const comment of recentComments) {
-        // No tokens to pass to processComment
-        const result = await this.processComment(comment); 
-        if (result) results.push(result);
-      }
-      console.log(`📊 Monitoring cycle complete. Processed ${results.length} new/updated comments.`);
-      return results;
-    } catch (error) {
-      console.error('❌ Error monitoring comments:', error.message);
+    if (!recentComments || recentComments.length === 0) {
+      console.log('ℹ️ No new comments found or error fetching comments.');
+      return [];
     }
+
+    console.log(`📌 Found ${recentComments.length} recent comments from YouTube.`);
+
+    // Pre-fetch existing records
+    const commentIds = recentComments.map(c => c.id);
+    const existingRecords = await CommentRecord.find({ commentId: { $in: commentIds } });
+    const existingIds = new Set(existingRecords.map(r => r.commentId));
+
+    console.log(`⚠️ Skipping ${existingIds.size} comments already processed.`);
+
+    const results = [];
+    for (const comment of recentComments) {
+      if (existingIds.has(comment.id)) {
+        console.log(`🚫 Skipping already processed comment: ${comment.id}`);
+        continue;
+      }
+
+      const result = await this.processComment(comment); 
+      if (result) results.push(result);
+    }
+
+    console.log(`📊 Monitoring cycle complete. Processed ${results.length} new comments.`);
+    return results;
+
+  } catch (error) {
+    console.error('❌ Error monitoring comments:', error.message);
+    return [];
   }
+}
+
+
 
   startMonitoring() {
     if (this.isMonitoring) {
