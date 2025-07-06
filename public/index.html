@@ -83,26 +83,38 @@
 <body>
     <div id="app">
         <!-- Header -->
-        <header class="header">
-            <div class="container">
-                <div class="header-content">
-                    <h1 class="logo">📊 Social Dashboard</h1> <!-- Generic logo -->
-                    <div class="header-actions">
-                        <!-- YouTube Auth -->
-                        <div id="youtube-auth-status" class="auth-status"></div>
-                        <button id="youtube-auth-btn" class="btn btn-primary">Connect YouTube</button>
+        <header class="header" style="
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 4rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+">
+    <div class="header-content" style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    ">
+        <div class="logo" style="display: flex; align-items: center; gap: 0.5rem;">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiSBJFZEb5iLIQP7qvgtTFG1_rXIusPnsoKQ&s" alt="Logo" style="height: 30px; width: auto;">
+            <span style="color: white; font-size: 1.5rem; font-weight: 600;">Social Dashboard</span>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 0.5rem;">
+            <div id="youtube-auth-status" class="auth-status"></div>
+            <button id="youtube-auth-btn" class="btn btn-primary glass-button">Connect YouTube</button>
 
-                        <!-- Twitter Auth -->
-                        <div id="twitter-auth-status" class="auth-status ml-4"></div>
-                        <button id="twitter-auth-btn" class="btn btn-primary">Connect Twitter</button>
+            <div id="twitter-auth-status" class="auth-status"></div>
+            <button id="twitter-auth-btn" class="btn btn-primary glass-button">Connect Twitter</button>
 
-                        <!-- LinkedIn Auth (Placeholder) -->
-                        <div id="linkedin-auth-status" class="auth-status ml-4"></div>
-                        <button id="linkedin-auth-btn" class="btn btn-primary">Connect LinkedIn</button>
-                    </div>
-                </div>
-            </div>
-        </header>
+            <div id="linkedin-auth-status" class="auth-status"></div>
+            <button id="linkedin-auth-btn" class="btn btn-primary glass-button">Connect LinkedIn</button>
+        </div>
+    </div>
+</header>
+
+
 
         <!-- Main Content -->
         <main class="main">
@@ -113,25 +125,25 @@
                         <h2>🔐 Connect Your Accounts</h2>
                         <p>Please connect your social media accounts to access the dashboard features.</p>
                     </div>
-                    <div class="auth-cards-grid">
-                        <div class="auth-card card">
-                            <h3>📹 YouTube Account</h3>
+                    <div  class="auth-cards-grid">
+                        <div class="auth-card card" id="yt-auth-card">
+                            <h3>YouTube Account</h3>
                             <p>Manage your YouTube videos, comments, and auto-reply settings.</p>
-                            <button onclick="dashboard.authenticateYouTube()" class="btn btn-primary btn-large">
+                            <button onclick="dashboard.authenticateYouTube()"  class="btn btn-primary btn-large glass-button">
                                 Connect YouTube
                             </button>
                         </div>
-                        <div class="auth-card card">
-                            <h3>🐦 Twitter Account</h3>
+                        <div class="auth-card card" id="twitter-auth-card">
+                            <h3>Twitter Account</h3>
                             <p>Manage your Twitter posts, replies, and sentiment analysis.</p>
-                            <button onclick="dashboard.authenticateTwitter()" class="btn btn-primary btn-large">
+                            <button onclick="dashboard.authenticateTwitter()" class="btn btn-primary btn-large glass-button">
                                 Connect Twitter
                             </button>
                         </div>
-                        <div class="auth-card card">
-                            <h3>💼 LinkedIn Account</h3>
+                        <div class="auth-card card" id="linkedin-auth-card" >
+                            <h3>LinkedIn Account</h3>
                             <p>LinkedIn integration is coming soon! Stay tuned for updates.</p>
-                            <button onclick="alert('LinkedIn integration coming soon!');" class="btn btn-primary btn-large">
+                            <button onclick="alert('LinkedIn integration coming soon!');" class="btn btn-primary btn-large glass-button">
                                 Connect LinkedIn
                             </button>
                         </div>
