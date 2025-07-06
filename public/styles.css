@@ -300,11 +300,14 @@ body {
 /* Tabs */
 .tabs {
     display: flex;
-    background: white;
+    background: rgba(255, 255, 255, 0.05); /* subtle white tint */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* soft border like cards */
     border-radius: 12px;
     padding: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    box-shadow: 
+        0 6px 12px rgba(255, 255, 255, 0.15),  /* outer glow */
+        0 0 12px rgba(255, 255, 255, 0.1);     /* inner gentle glow */
+    margin: 1.5rem 0; 
 }
 
 .tab-btn {
@@ -316,16 +319,17 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #6b7280;
+    color: #f9fafb; /* white text to match card style */
 }
 
 .tab-btn.active {
-    background: #4f46e5;
-    color: white;
+    background: rgba(255, 255, 255, 0.2); /* soft white active tab */
+    color: #f9fafb; /* dark text for readability */
 }
 
 .tab-btn:hover:not(.active) {
-    background: #f3f4f6;
+    background: rgba(255, 255, 255, 0.1); /* subtle white tint on hover */
+    color: #f9fafb; /* keep text white on hover */
 }
 
 /* Tab Content */
@@ -335,6 +339,7 @@ body {
 
 .tab-pane.active {
     display: block;
+
 }
 
 /* Videos List */
@@ -369,10 +374,15 @@ body {
 
 .video-title {
     font-weight: 600;
-    color: #1f2937;
+    color: #f9fafb;
     margin-bottom: 0.5rem;
     line-height: 1.4;
 }
+.video-item:hover .video-title {
+    color: #111827; /* or #000 if you want pure black */
+}
+
+
 
 .video-meta {
     display: flex;
